@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle de Almoxarifado</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2c3e50">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    .form-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      flex: 1;
+    }
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #2c3e50;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Controle de Almoxarifado</h1>
+
+  <div class="form-group">
+    <input type="text" id="codigo" placeholder="Código da Peça">
+    <input type="text" id="descricao" placeholder="Descrição da Peça">
+    <input type="number" id="quantidade" placeholder="Quantidade">
+    <input type="text" id="responsavel" placeholder="Quem Retirou" onblur="alertarResponsavel()">
+    <button onclick="registrar()">Registrar</button>
+    <button onclick="window.print()">Imprimir</button>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-top:10px;">
+      <input type="text" id="busca" placeholder="Buscar por código ou nome..." onkeyup="filtrarTabela()" style="flex:1;">
+      <button onclick="buscarNaInternet()">Buscar Online</button>
+    </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Data/Hora</th>
+        <th>Código</th>
+        <th>Descrição</th>
+        <th>Qtd</th>
+        <th>Responsável</th>
+      </tr>
+    </thead>
+    <tbody id="tabelaRegistros"></tbody>
+  </table>
+
+  <script>
+    const tabela = document.getElementById("tabelaRegistros");
+
+    window.onload = () => {
+      const registrosSalvos = JSON.parse(localStorage.getItem("registros")) || [];
+      registrosSalvos.forEach(registro => addLinha(registro));
+    };
+
+    function registrar() {
+      const codigo = document.getElementById("codigo").value;
+      const descricao = document.getElementById("descricao").value;
+      const quantidade = document.getElementById("quantidade").value;
+      const responsavel = document.getElementById("responsavel").value;
+      const dataHora = new Date().toLocaleString();
+
+      if (!codigo || !quantidade || !responsavel) {
+        alert("Preencha os campos obrigatórios.");
+        return;
+      }
+
+      const registro = { dataHora, codigo, descricao, quantidade, responsavel };
+      addLinha(registro);
+
+      const registros = JSON.parse(localStorage.getItem("registros")) || [];
+      registros.push(registro);
+      localStorage.setItem("registros", JSON.stringify(registros));
+
+      document.getElementById("codigo").value = '';
+      document.getElementById("descricao").value = '';
+      document.getElementById("quantidade").value = '';
+      document.getElementById("responsavel").value = '';
+    }
+
+    function addLinha(reg) {
+      const row = `<tr>
+        <td>${reg.dataHora}</td>
+        <td>${reg.codigo}</td>
+        <td>${reg.descricao}</td>
+        <td>${reg.quantidade}</td>
+        <td>${reg.responsavel}</td>
+      </tr>`;
+      tabela.innerHTML += row;
+    }
+
+    function filtrarTabela() {
+      const termo = document.getElementById("busca").value.toLowerCase();
+      const linhas = tabela.getElementsByTagName("tr");
+
+      for (let i = 0; i < linhas.length; i++) {
+        const texto = linhas[i].innerText.toLowerCase();
+        linhas[i].style.display = texto.includes(termo) ? "" : "none";
+      }
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('Service Worker registrado!'))
+        .catch(err => console.error('Erro ao registrar SW:', err));
+    }
+  
+function alertarResponsavel() {
+  const nome = document.getElementById("responsavel").value;
+  if (nome.trim()) {
+    alert("Responsável registrado: " + nome);
+  }
+}
+
+function buscarNaInternet() {
+  const termo = document.getElementById("busca").value;
+  if (termo.trim()) {
+    window.open("https://www.google.com/search?q=" + encodeURIComponent(termo), "_blank");
+  }
+}
+
+function filtrarAvancado() {
+  const cod = document.getElementById("filtroCodigo").value.toLowerCase();
+  const desc = document.getElementById("filtroDescricao").value.toLowerCase();
+  const resp = document.getElementById("filtroResponsavel").value.toLowerCase();
+  const linhas = tabela.getElementsByTagName("tr");
+
+  for (let i = 0; i < linhas.length; i++) {
+    const colunas = linhas[i].getElementsByTagName("td");
+    if (colunas.length < 5) continue;
+
+    const c = colunas[1].innerText.toLowerCase();
+    const d = colunas[2].innerText.toLowerCase();
+    const r = colunas[4].innerText.toLowerCase();
+
+    const mostrar = c.includes(cod) && d.includes(desc) && r.includes(resp);
+    linhas[i].style.display = mostrar ? "" : "none";
+  }
+}
+
+</script>
+</body>
+</html>
